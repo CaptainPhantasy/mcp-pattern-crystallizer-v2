@@ -1,0 +1,52 @@
+{
+  "name": "novel-concepts-mcp",
+  "version": "0.2.0",
+  "description": "MCP server implementing all 10 Novel Concepts tools for LLM agents",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "test": "node dist/test/test-client.js",
+    "start": "node dist/src/index.js",
+    "test:watch": "node --watch dist/test/test-client.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "llm",
+    "ai-agents",
+    "concept-graph",
+    "task-coordination",
+    "ias",
+    "seal-pattern",
+    "rlm",
+    "path",
+    "concept-sync",
+    "episodic-memory",
+    "analogy",
+    "refactoring",
+    "consensus",
+    "context-compression",
+    "execution-trace"
+  ],
+  "author": "Novel Concepts",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "IMPLEMENTATION_NOTES.md"
+  ]
+}

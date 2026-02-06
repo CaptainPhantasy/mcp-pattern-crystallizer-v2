@@ -1,0 +1,21 @@
+{
+  "name": "@floyd/terminal-server",
+  "version": "1.0.0",
+  "description": "MCP server for terminal session and process management",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/uuid": "^11.0.0",
+    "typescript": "^5.8.3"
+  }
+}

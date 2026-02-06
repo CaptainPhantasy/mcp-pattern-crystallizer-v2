@@ -1,0 +1,20 @@
+{
+  "name": "@floyd/safe-ops-server",
+  "version": "1.0.0",
+  "description": "MCP server for safe FLOYD operations - refactor, simulate, verify",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.8.3"
+  }
+}

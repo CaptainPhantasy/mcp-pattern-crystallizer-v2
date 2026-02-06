@@ -1,0 +1,45 @@
+{
+  "name": "floyd-devtools-server",
+  "version": "1.0.0",
+  "description": "MCP server with 10 development tools: dependency_analyzer, typescript_semantic_analyzer, monorepo_dependency_analyzer, build_error_correlator, schema_migrator, benchmark_runner, secure_hook_executor, api_format_verifier, test_generator, git_bisect",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "tsc -p tsconfig.test.json && node dist/test/test-client.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "devtools",
+    "dependency-analyzer",
+    "schema-migrator",
+    "benchmark",
+    "hook-executor",
+    "api-verifier",
+    "test-generator",
+    "typescript",
+    "bisect",
+    "monorepo",
+    "build-errors"
+  ],
+  "author": "Floyd DevTools",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "typescript": "^5.8.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
