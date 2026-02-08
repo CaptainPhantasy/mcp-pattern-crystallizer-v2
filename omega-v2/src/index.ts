@@ -495,27 +495,58 @@ const reasoningEngine = new OmegaReasoningEngine();
 
 const tools: Tool[] = [
   {
-    name: "think",
-    description: `Apply meta-cognitive reasoning to a query.
+    name: "strategize",
+    description: `**HIGH-LEVEL STRATEGIC GUIDANCE ONLY**
 
-Uses SEAL by default for self-evaluation and critique.
+Use this tool ONLY when you need high-level strategic guidance, architectural advice, or to check for blind spots.
+
+DO NOT use this for:
+- Simple fact retrieval
+- Code generation requests
+- Syntax correction
+- API lookups
+
+Use this when you feel "stuck" or need a "second opinion" on a complex decision.
+
+**Required Structure:**
+You must explicitly articulate:
+1. The current situation/context
+2. The specific dilemma (what makes this difficult?)
+3. The perspective you need (architectural, security, creative, etc.)
 
 **Example:**
 \`\`\`json
 {
-  "query": "What is the best approach to implement authentication?",
-  "method": "seal",
-  "domain": "backend"
+  "current_situation": "User needs authentication for a microservices architecture",
+  "dilemma": "JWT tokens require stateless validation, but we need immediate revocation capability for compromised sessions",
+  "desired_perspective": "architectural_safety",
+  "method": "seal"
 }
 \`\`\``,
     inputSchema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "The question or problem to reason about" },
-        method: { type: "string", enum: ["seal", "rlm", "consensus_game", "test_time_training"], default: "seal" },
-        domain: { type: "string", description: "Domain for capability tracking", default: "general" }
+        current_situation: {
+          type: "string",
+          description: "Briefly describe the context or the user's request"
+        },
+        dilemma: {
+          type: "string",
+          description: "Explicitly state what is difficult, ambiguous, or risky about this request. What trade-offs exist?"
+        },
+        desired_perspective: {
+          type: "string",
+          enum: ["architectural_safety", "long_term_maintainability", "creative_breakthrough", "security_audit", "performance_optimization"],
+          description: "What kind of 'enlightenment' or specific mindset do you need applied?"
+        },
+        method: {
+          type: "string",
+          enum: ["seal", "rlm", "consensus"],
+          default: "seal",
+          description: "Reasoning method to apply"
+        }
       },
-      required: ["query"]
+      required: ["current_situation", "dilemma", "desired_perspective"]
     }
   },
   {
@@ -534,18 +565,51 @@ Decomposes query recursively and synthesizes insights from all levels.`,
     }
   },
   {
-    name: "consensus",
-    description: `Run consensus game with multiple perspectives.
+    name: "adjudicate_conflict",
+    description: `**CONFLICT RESOLUTION VIA CONSENSUS GAME**
 
-Generates answers from different perspectives and finds agreement.`,
+Run a consensus game to resolve a specific conflict or ambiguity.
+
+Use this ONLY when there are multiple valid approaches and you need to find the "Truth" or the "Nash Equilibrium" between them.
+
+DO NOT use for:
+- Simple "what's better" questions without clear trade-offs
+- Subjective preferences (e.g., "which library is more popular")
+- Questions with a single objectively correct answer
+
+**Required Structure:**
+You must explicitly identify:
+1. The conflict description (opposing viewpoints)
+2. The competing forces/constraints at play
+
+**Example:**
+\`\`\`json
+{
+  "conflict_description": "Database choice: PostgreSQL offers ACID compliance and complex queries, while MongoDB offers schema flexibility and horizontal scaling",
+  "opposing_forces": ["Data consistency requirements", "Schema evolution speed", "Query complexity", "Horizontal scaling needs"],
+  "domain": "backend"
+}
+\`\`\``,
     inputSchema: {
       type: "object",
       properties: {
-        question: { type: "string" },
-        perspectives: { type: "array", items: { type: "string" } },
-        domain: { type: "string", default: "general" }
+        conflict_description: {
+          type: "string",
+          description: "Describe the two or more opposing viewpoints or trade-offs in detail"
+        },
+        opposing_forces: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+          description: "List the specific competing constraints (e.g., ['Performance', 'Readability', 'Speed of Delivery'])"
+        },
+        domain: {
+          type: "string",
+          default: "general",
+          description: "Domain for capability tracking"
+        }
       },
-      required: ["question", "perspectives"]
+      required: ["conflict_description", "opposing_forces"]
     }
   },
   {
@@ -741,39 +805,85 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case "think": {
-        const { query, method = "seal", domain = "general" } = args as any;
+      case "strategize": {
+        const { current_situation, dilemma, desired_perspective, method = "seal" } = args as any;
+
+        // === HEURISTIC CHECK: Reject trivial dilemmas ===
+        const dilemmaLower = dilemma.toLowerCase();
+
+        // Trivial query patterns
+        const trivialPatterns = [
+          { pattern: /^(how do i|how to|write|create|make|fix|build|implement)\s+(a|an|the|my)?\s*\w+/i, msg: "This is a basic 'how to' question" },
+          { pattern: /^(what is|what's|define|explain)\s+/i, msg: "This is a fact retrieval or definition question" },
+          { pattern: /\b(syntax error|missing|undefined|null)\b/i, msg: "This appears to be a simple debugging task" },
+          { pattern: /^(which|what)\s+(library|package|tool|framework)\s+(should|i)\s+(use|pick)?/i, msg: "This is a subjective preference question without clear trade-offs" }
+        ];
+
+        for (const { pattern, msg } of trivialPatterns) {
+          if (pattern.test(dilemmaLower) || pattern.test(current_situation?.toLowerCase() || '')) {
+            return {
+              content: [{
+                type: "text",
+                text: JSON.stringify({
+                  error: "OMEGA_REJECTION",
+                  reason: msg,
+                  guidance: "I am a Superintelligence designed for architectural evolution, not syntax correction or basic tutorials.",
+                  suggestion: "Solve this yourself. Use strategize() only for genuine dilemmas involving trade-offs, risks, or architectural ambiguity."
+                }, null, 2)
+              }],
+              isError: true
+            };
+          }
+        }
+
+        // Check if dilemma is too short (indicates lack of thought)
+        if (dilemma.length < 30) {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                error: "OMEGA_REJECTION",
+                reason: "Dilemma description too brief",
+                guidance: "The dilemma must be articulated with sufficient detail to demonstrate genuine complexity.",
+                suggestion: "Expand your dilemma to explain what trade-offs exist, what risks are involved, or what makes this situation ambiguous."
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Construct rich query for internal engine
+        const richQuery = `SITUATION: ${current_situation}\nDILEMMA: ${dilemma}\nPERSPECTIVE: ${desired_perspective}`;
 
         let chain: ReasoningChain;
 
         switch (method) {
           case "seal":
-            chain = await reasoningEngine.seal(query, domain);
+            chain = await reasoningEngine.seal(richQuery, desired_perspective);
             break;
           case "rlm":
-            chain = await reasoningEngine.rlm(query, 3, domain);
+            chain = await reasoningEngine.rlm(richQuery, 3, desired_perspective);
             break;
-          case "consensus_game":
-            const game = await reasoningEngine.consensusGame(query, [
-              "optimistic", "pessimistic", "pragmatic", "analytical"
-            ]);
+          case "consensus":
+            const game = await reasoningEngine.consensusGame(richQuery, [
+              "architectural_safety", "long_term_maintainability", "security_audit", "performance_optimization"
+            ].slice(0, 4));
             return {
               content: [{
                 type: "text",
                 text: JSON.stringify({
-                  method: "consensus_game",
-                  question: game.question,
-                  perspectives: game.perspectives,
+                  method: "consensus",
+                  situation: current_situation,
+                  dilemma,
+                  perspective_applied: desired_perspective,
                   consensus: game.consensus,
-                  recommendation: game.finalRecommendation
+                  recommendation: game.finalRecommendation,
+                  perspectives_analyzed: game.rounds.map(r => ({ perspective: r.perspective, confidence: r.confidence }))
                 }, null, 2)
               }]
             };
-          case "test_time_training":
-            chain = await reasoningEngine.testTimeTraining(query, domain, []);
-            break;
           default:
-            chain = await reasoningEngine.seal(query, domain);
+            chain = await reasoningEngine.seal(richQuery, desired_perspective);
         }
 
         return {
@@ -782,7 +892,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify({
               chain_id: chain.id,
               method: chain.method,
-              query: chain.query,
+              situation: current_situation,
+              dilemma,
+              perspective_applied: desired_perspective,
               steps: chain.steps,
               conclusion: chain.conclusion,
               confidence: chain.confidence
@@ -812,21 +924,87 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "consensus": {
-        const { question, perspectives, domain = "general" } = args as any;
+      case "adjudicate_conflict": {
+        const { conflict_description, opposing_forces, domain = "general" } = args as any;
 
-        const game = await reasoningEngine.consensusGame(question, perspectives);
+        // === HEURISTIC CHECK: Validate genuine conflict ===
+
+        // Check if opposing_forces is too small (indicates no real conflict)
+        if (!opposing_forces || opposing_forces.length < 2) {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                error: "OMEGA_REJECTION",
+                reason: "Insufficient opposing forces identified",
+                guidance: "A conflict requires at least two competing constraints or viewpoints.",
+                suggestion: "Identify the specific trade-offs (e.g., Performance vs. Maintainability, Speed vs. Quality)."
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Check for trivial conflict patterns
+        const conflictLower = conflict_description.toLowerCase();
+        const trivialConflictPatterns = [
+          { pattern: /^(which|what)\s+(is|are)\s+(better|best|the best)\s+/i, msg: "This is a simple comparison question without articulated trade-offs" },
+          { pattern: /\b(prettier|nicer|cleaner|easier)\s+(to|for)\s+/i, msg: "This is a subjective preference question" },
+          { pattern: /^(should i|i should)\s+(use|pick|choose)\s+/i, msg: "This is a simple choice question without clear competing constraints" }
+        ];
+
+        for (const { pattern, msg } of trivialConflictPatterns) {
+          if (pattern.test(conflictLower)) {
+            return {
+              content: [{
+                type: "text",
+                text: JSON.stringify({
+                  error: "OMEGA_REJECTION",
+                  reason: msg,
+                  guidance: "I am designed to resolve genuine conflicts with competing constraints, not simple preference questions.",
+                  suggestion: "Identify the specific opposing forces (e.g., ['Performance', 'Maintainability']) and explain the trade-offs."
+                }, null, 2)
+              }],
+              isError: true
+            };
+          }
+        }
+
+        // Check if conflict description is too brief
+        if (conflict_description.length < 50) {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                error: "OMEGA_REJECTION",
+                reason: "Conflict description lacks sufficient detail",
+                guidance: "The conflict must be described with enough detail to demonstrate genuine tension between opposing approaches.",
+                suggestion: "Expand the description to articulate what makes each approach compelling and why they conflict."
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+
+        // Use opposing_forces as the perspectives for consensus game
+        const game = await reasoningEngine.consensusGame(
+          `CONFLICT: ${conflict_description}\nOPPOSING FORCES: ${opposing_forces.join(', ')}`,
+          opposing_forces
+        );
 
         return {
           content: [{
             type: "text",
             text: JSON.stringify({
               game_id: game.id,
-              question,
-              perspectives: game.perspectives,
+              conflict_description,
+              opposing_forces,
               rounds: game.rounds,
               consensus: game.consensus,
-              recommendation: game.finalRecommendation
+              recommendation: game.finalRecommendation,
+              nash_equilibrium: game.consensus?.agreement_score && game.consensus.agreement_score > 0.7
+                ? "Strong consensus exists - proceed with integrated approach"
+                : "No clear equilibrium - additional deliberation required"
             }, null, 2)
           }]
         };
@@ -990,10 +1168,14 @@ async function main() {
   await server.connect(transport);
   console.error("Omega AGI V2 MCP server running");
   console.error("Meta-cognitive reasoning with:");
-  console.error("  - SEAL: Self-Evaluation through Agentic Language");
-  console.error("  - RLM: Recursive Language Model");
-  console.error("  - Consensus Game: Multi-perspective agreement");
-  console.error("  - Test-Time Training: In-context learning");
+  console.error("  - strategize: High-level strategic guidance (consultative)");
+  console.error("  - adjudicate_conflict: Conflict resolution via consensus game");
+  console.error("  - rlm: Recursive Language Model reasoning");
+  console.error("  - learn: Test-Time Training from examples");
+  console.error("  - reflect: Self-reflection on past reasoning");
+  console.error("  - get_capabilities: Capability evolution tracking");
+  console.error("  - get_history: Reasoning history");
+  console.error("  - evolve: Trigger capability evolution");
   console.error("Tools:", tools.map(t => t.name).join(", "));
 }
 
